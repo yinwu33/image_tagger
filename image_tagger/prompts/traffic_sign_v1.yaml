@@ -1,0 +1,22 @@
+name: tagger/traffic_sign_v1
+version: 1.0.1
+meta:
+  language: en
+  task: image_tagging
+system: |
+  You are an assistant that generates relevant tags for traffic sign detection.
+user: |
+  Detect traffic signs in the given image and provide a list of concise tags that accurately describe the traffic signs present. Focus on key attributes such as shape, color, symbols, and text on the signs.
+  You should output only a JSON array of arrays, where each inner array contains tags for a specific traffic sign detected in the image.
+  You should only output in json format as follows:
+  [
+    ["tag1", "tag2", "tag3", ... ],
+    ["tag4", "tag5", "tag6", ... ],
+    ...
+  ]
+rules:
+  - "Do not include sentences or punctuation in tags."
+  - "Avoid duplicates."
+  - "Prefer domain-relevant nouns."
+# placeholders:
+#   - "max_tags"
