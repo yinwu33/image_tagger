@@ -20,7 +20,7 @@ __all__ = [
 class ImageTagger(Protocol):
     """Common interface for all image tagging backends."""
 
-    def tag(self, image: ImageInput, condition: str | None = None) -> list[str]:
+    def tag(self, image: ImageInput, condition: str | None = None) -> dict | list:
         """
         Generate descriptive tags for an image.
 

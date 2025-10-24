@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64, json, re, yaml
 from typing import Any, Mapping, Sequence
 from pathlib import Path
+from collections.abc import Sequence
 from litellm import completion
 from jinja2 import Environment, BaseLoader
 
@@ -17,7 +18,7 @@ DEFAULT_PROVIDER_CONFIGS: list[dict[str, Any]] = [
     {
         "name": "azure_openai",
         "model": "azure/gpt-5-mini",
-        "api_version": "2024-05-01-preview",
+        # "api_version": "2024-05-01-preview",
     },
     {
         "name": "gemini",
@@ -101,7 +102,7 @@ class LLMPromptTagger(BaseTagger):
         self._prompt = PromptProvider(prompt_path)
 
     # ---------- public API ----------
-    def tag(self, image: ImageInput, keys: dict = {}) -> list[str]:
+    def tag(self, image: ImageInput, keys: dict = {}) -> list | dict:
         image_bytes = self._load_image_bytes(image)
         messages = self._build_messages(**keys)
         raw_text = self._call_llm(image_bytes=image_bytes, messages=messages)
@@ -146,6 +147,7 @@ class LLMPromptTagger(BaseTagger):
         parts.append({"type": "image_url", "image_url": {"url": data_url}})
         messages[idx]["content"] = parts
 
+        # print("CALLLLLLLLLLLL")
         response = completion(
             model=self._model,
             messages=messages,
@@ -153,40 +155,44 @@ class LLMPromptTagger(BaseTagger):
         )
         return _extract_text_from_response(response)
 
-    def _parse_tags(self, candidate_text: str) -> list[str]:
-        # strip code fences ```...```
+    def _parse_tags(self, candidate_text: str):
+        """Parse candidate text into a list or dict of tags.
+
+        Returns:
+            list | dict | None
+        """
         text = candidate_text.strip()
+
+        # --- strip code fences ```...``` ---
         fence = re.match(r"^```[a-zA-Z0-9]*\s*(.*?)\s*```$", text, re.S)
         if fence:
             text = fence.group(1).strip()
 
-        # try JSON first
+        # --- try JSON first ---
         try:
             parsed = json.loads(text)
-            if isinstance(parsed, dict):
-                parsed = parsed.get("tags", [])
-            if isinstance(parsed, Sequence) and not isinstance(parsed, (str, bytes)):
-                tags = [str(item).strip().lower() for item in parsed]
-                tags = [t for t in tags if t]
-                # de-dup preserving order
-                seen, out = set(), []
-                for t in tags:
-                    if t not in seen:
-                        seen.add(t)
-                        out.append(t)
-                return out[: self._max_tags]
+            # ensure only list or dict are accepted
+            if isinstance(parsed, (list, dict)):
+                return parsed
+            # sometimes model wraps with {"tags": [...]} — handle that
+            if isinstance(parsed, dict) and "tags" in parsed:
+                return parsed["tags"]
         except json.JSONDecodeError:
             pass
 
-        # fallback: split on , ; newline
+        # --- fallback: split plain text into list[str] ---
         tokens = [
             tok.strip().lower() for tok in re.split(r"[,;\n]+", text) if tok.strip()
         ]
+
+        # remove duplicates while preserving order
         seen, out = set(), []
         for t in tokens:
             if t not in seen:
                 seen.add(t)
                 out.append(t)
+        if not out:
+            return None
         return out[: self._max_tags]
 
 

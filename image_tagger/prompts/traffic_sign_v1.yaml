@@ -6,17 +6,47 @@ meta:
 system: |
   You are an assistant that generates relevant tags for traffic sign detection.
 user: |
-  Detect traffic signs in the given image and provide a list of concise tags that accurately describe the traffic signs present. Focus on key attributes such as shape, color, symbols, and text on the signs.
-  You should output only a JSON array of arrays, where each inner array contains tags for a specific traffic sign detected in the image.
+  Detect traffic signs in the given image and provide a list of concise attributes that accurately describe the traffic signs present. Focus on key attributes including but not limit to shape, color, symbols, and text on the signs.
   You should only output in json format as follows:
   [
-    ["tag1", "tag2", "tag3", ... ],
-    ["tag4", "tag5", "tag6", ... ],
+    {
+        "name": "<traffic_sign_name>",
+        "attributes": {
+            "attr_name": "value",
+            "attr_name": "value",
+            ...
+        }
+    },
     ...
-  ]
+    ]
+
+    For example:
+    [
+      {
+          "name": "Stop Sign",
+          "attributes": {
+              "shape": "octagon",
+              "color": "red",
+              "text": "STOP",
+              "language": "English"
+          }
+      },
+      {
+          "name": "Speed Limit Sign",
+          "attributes": {
+              "shape": "rectangle",
+              "color": "white",
+              "text": "SPEED LIMIT 60",
+              "language": "English"
+          }
+      }
+    ]
 rules:
   - "Do not include sentences or punctuation in tags."
   - "Avoid duplicates."
   - "Prefer domain-relevant nouns."
+  - "Find out abnormal or unusual traffic sign and its attributes if any."
+  - "Do not include traffic lights or other non-sign objects."
+  - "If no traffic sign is detected, return an empty list: []"
 # placeholders:
 #   - "max_tags"
